@@ -54,7 +54,7 @@ if __name__=="__main__":
     for tick_number in tick_numbers:
         execution_time = timeit.timeit(lambda: data_parser.parse_ticks(f'test_ticks_{tick_number}.bin'),number=10)
         print(f"Execution time: {execution_time} seconds for {tick_number} run")
-        print(f"Time per tick: {execution_time/int(tick_number)}")
-        print(f"Ops per second: {int(tick_number)/execution_time}")
+        print(f"Time per tick: {int(1_000_000_000*execution_time/int(tick_number))}ns")
+        print(f"Ops per second: {int(int(tick_number)/execution_time)}")
 
 

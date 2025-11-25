@@ -1,0 +1,79 @@
+  In real financial systems, you'll typically see either:
+  - Fixed-point integers (most common): Store price as cents or basis points to avoid floating-point precision issues. For example, $123.45 stored as 12345 (in cents).
+  - Decimal types: High-precision decimal representations
+  - 64-bit floats: Used sometimes, but have precision limitations that can matter in financial systems
+
+  For your learning exercise, 64-bit floats are fine, but it's worth noting this trade-off exists in the real world.
+
+
+## Test data
+
+f.write(struct.pack("=QIdI", *rec))
+Q = long long 
+I = int
+d = double
+
+struct takes however many arguments you have and tries to pack them according to the format string
+
+Each one of the data items has the following:
+timestamp: Some base timestamp that is incremented by 100 each time for miliseconds
+symbol_id = Picks a random symbol from the list of options
+price = Depending on the symbol id, the price will have some value + 100 and a noise parameter which is centered around 0 with a standard deviation of 1
+volume = some random integer between 100 and 10_000
+
+We also introduce a random shuffling of the most recent 10% of values to represent data arriving out of order
+
+
+## Naive binary parser pt 1
+
+Order of operations:
+1. Read in the file:
+    We have to know what the size of each record is first - we can figure this out by calculating the number of bytes in each one of the data structures we're given, but we also need to know whether there is extra data at the start/end of each record that we'll also have to parser
+
+    I assume there is some EOF delimiter at the end of the file that is added automatically by the file writing function? Need to double check that
+
+2. Presumably this is just struct.unpack
+3. Given python is untyped, we should just be able to create a class object and assign the property to the value it corresponds to in TickData
+4. Repeat until we're at the end of the file
+
+
+1. Should I look at the generator code function itself to see how it creates the data structure, is that the easiest way to check whether headers/delimiters are being used?
+
+2. Looking at https://docs.python.org/3/library/struct.html
+
+This converts between python values and C structs represented as Python bytes objects. 
+Are there any pad bytes?
+
+Q = unsigned long long (Python integer) 8 bytes
+I = integer 4 bytes
+d = double (Python float) 8 bytes
+
+QIdI = 8 + 4 + 8 + 4 = 24 bytes total per record if not headers/delimiters
+
+No padding is added when using non-native size and alignment (=)
+
+Unsure how you would handle corrupted files without delimiters, as everything would be shifted left and you'd only know when you reached the end of the file but you would have no idea where the issue was
+
+I think it makes more sense to read in chunks, but that also means way more memory calls to get the data? How different is it for performance purposes? Where is the data stored when its not being read? Does that make a difference to whether we should read in chunks or all at the same time?
+
+
+Assumptions with the test data generator:
+
+1. Have to assume the data is well formed, would usually have to do with delimiters or checksums as corruption hard to detect mid-stream. Real problem with binary protocol.
+
+What is the difference between File I/O and Memory access?
+
+Memory access - RAM, easy to access, 1 nanosecond
+File I/O - data on disk, CPU has to ask the OS to fetch it from storage
+syscall, disk seek, read, copy to Memory - 10,000,000 nanoseconds
+
+File I/O is 10 million times slower
+
+Way faster to read once then parse in memory
+
+
+--------------------
+Naive binary parser implementation
+
+Problems:
+You want to read the *whole* thing first, need to understand what the context manager 'open' does, does it fetch all of it?

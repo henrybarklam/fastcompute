@@ -77,3 +77,27 @@ Naive binary parser implementation
 
 Problems:
 You want to read the *whole* thing first, need to understand what the context manager 'open' does, does it fetch all of it?
+
+
+# Timing
+
+We're going to start with timeit, benchmark how long each parsing takes
+
+
+Current performance:
+- Time per tick:  5-7.5 microseconds (5000-7500ns)
+ - Ops/sec: 130-190k ops/sec
+
+ vs Baseline target:
+ - 500-1000ns per tick
+ - 1-2M ops/sec
+
+ Parser is about 5-7x slower than the target
+ Performance is consistent, results are reproducible 
+
+ Open questions:
+  Is it:
+  - Reading the file?
+  - Unpacking with struct.unpack()?
+  - Creating TickData objects?
+  - Appending to the list?
